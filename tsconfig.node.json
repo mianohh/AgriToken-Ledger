@@ -1,9 +1,10 @@
 {
-  "extends": "./tsconfig.json",
   "compilerOptions": {
     "module": "ESNext",
     "moduleResolution": "bundler",
-    "types": ["node"]
+    "types": ["node"],
+    "composite": true,
+    "skipLibCheck": true
   },
   "include": ["vite.config.ts", "hardhat.config.ts", "scripts"]
 }
