@@ -24,8 +24,8 @@ A Web3 decentralized application for tracking agricultural transactions on the E
 ### 1. Clone and Install
 
 ```bash
-git clone <your-repo-url>
-cd Agritoken_Ledger
+git clone https://github.com/mianohh/AgriToken-Ledger.git
+cd AgriToken-Ledger
 npm install
 ```
 
