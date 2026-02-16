@@ -1,9 +1,15 @@
 import { useWallet } from '../hooks/useWallet';
+import { useEffect, useState } from 'react';
 
 export function WalletConnect() {
   const { address, isConnected, balance, connect, disconnect, isLoading, error } = useWallet();
+  const [hasMetaMask, setHasMetaMask] = useState(false);
 
-  if (!window.ethereum) {
+  useEffect(() => {
+    setHasMetaMask(typeof window.ethereum !== 'undefined');
+  }, []);
+
+  if (!hasMetaMask) {
     return (
       <div className="wallet-install">
         <p>MetaMask not detected</p>
