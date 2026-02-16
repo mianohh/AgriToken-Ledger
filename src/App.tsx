@@ -9,7 +9,7 @@ import { useWallet } from './hooks/useWallet';
 import './index.css';
 
 function App() {
-  const { balance } = useWallet();
+  const { balance, isConnected } = useWallet();
   const [activeTab, setActiveTab] = useState<'create' | 'verify' | 'dashboard'>('create');
 
   return (
@@ -23,7 +23,7 @@ function App() {
       </header>
       
       <main>
-        <BalanceWarning balance={balance} />
+        <BalanceWarning balance={balance} isConnected={isConnected} />
         
         <div className="tabs">
           <button 

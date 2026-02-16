@@ -1,11 +1,12 @@
 interface BalanceWarningProps {
   balance: string;
+  isConnected: boolean;
 }
 
-export function BalanceWarning({ balance }: BalanceWarningProps) {
+export function BalanceWarning({ balance, isConnected }: BalanceWarningProps) {
   const balanceNum = parseFloat(balance);
   
-  if (balanceNum >= 0.01) {
+  if (!isConnected || balanceNum >= 0.01) {
     return null;
   }
 
