@@ -121,7 +121,7 @@ MIT
 
 ## Links
 
-- [Live Demo](https://agritoken-ledger.vercel.app) (Coming soon)
+- [Live Demo](https://agritokenledger.vercel.app)
 - [GitHub Repository](https://github.com/mianohh/AgriToken-Ledger)
 - [Alchemy Dashboard](https://dashboard.alchemy.com)
 - [Base Sepolia Faucet](https://www.alchemy.com/faucets/base-sepolia)
