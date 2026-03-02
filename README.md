@@ -106,31 +106,14 @@ To deploy your own contract, update the address in `.env`
 
 ## Deployment
 
-### Vercel Deployment
-
-1. Push to GitHub
-2. Import project in Vercel
-3. Add environment variables:
-   - `VITE_BASE_SEPOLIA_RPC_URL`
-   - `VITE_CONTRACT_ADDRESS`
-   - `VITE_CHAIN_ID`
-   - `VITE_EXPLORER_URL`
-4. Deploy
+Deploy to Vercel or any static hosting platform. Set the required environment variables from `.env.example`.
 
 ## Usage
 
-1. **Connect Wallet**: Click "Connect Wallet" and approve MetaMask connection
-2. **Create Transaction**: Fill in agricultural transaction details (farmer ID, produce type, weight, buyer)
-3. **Submit to Blockchain**: Approve the transaction in MetaMask
-4. **View Dashboard**: See all your transactions with Transaction ID and Data Hash
-5. **Verify Publicly**: Use the Verify Transaction tab with Transaction ID and Data Hash to verify on-chain
-6. **View on BaseScan**: Click "View Blockchain TX" to see transaction on Base Sepolia explorer
-
-### Important Notes
-
-- **Data Hash vs Blockchain TX Hash**: The Data Hash is the hash of your agricultural transaction data stored in the smart contract. The Blockchain TX Hash is the hash of the blockchain transaction itself (visible on BaseScan).
-- **Verification**: Use the Transaction ID and Data Hash from the dashboard to verify transactions publicly.
-- **LocalStorage**: Transactions are stored locally in your browser for easy access. They remain verified on-chain.
+1. Connect wallet and create transactions with agricultural data
+2. View transactions on dashboard with Transaction ID and Data Hash
+3. Verify transactions publicly using the verification tab
+4. Check blockchain records on BaseScan
 
 ## License
 
