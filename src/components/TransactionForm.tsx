@@ -102,7 +102,7 @@ export function TransactionForm() {
       />
       
       <div className="gas-info">
-        ⛽ Estimated gas: {estimatedCost} ETH
+        💰 Estimated gas: {estimatedCost} ETH
       </div>
       
       <button type="submit" disabled={isSubmitting || !hasSufficientBalance}>
