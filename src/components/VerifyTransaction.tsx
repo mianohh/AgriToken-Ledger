@@ -37,6 +37,7 @@ export function VerifyTransaction() {
           value={expectedHash}
           onChange={(e) => setExpectedHash(e.target.value)}
           required
+          title="Use the Data Hash from the transaction dashboard, not the blockchain transaction hash"
         />
         <button type="submit" disabled={loading}>
           {loading ? '🔍 Verifying...' : '🔍 Verify on Blockchain'}
@@ -52,11 +53,11 @@ export function VerifyTransaction() {
               <p><strong>Timestamp:</strong> {new Date(Number(result.record.timestamp) * 1000).toLocaleString()}</p>
               <p><strong>Transaction Hash:</strong> {result.record.transactionHash}</p>
               <a 
-                href={`${import.meta.env.VITE_ETHERSCAN_BASE_URL}/tx/${result.record.transactionHash}`}
+                href={`${import.meta.env.VITE_EXPLORER_URL}/tx/${result.record.transactionHash}`}
                 target="_blank"
                 rel="noopener noreferrer"
               >
-                View on Etherscan →
+                View on BaseScan →
               </a>
             </>
           )}

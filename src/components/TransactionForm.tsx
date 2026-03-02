@@ -5,7 +5,7 @@ import { useGasEstimation } from '../hooks/useGasEstimation';
 import { generateTransactionHash } from '../utils/hash';
 
 export function TransactionForm() {
-  const { isConnected, balance } = useWallet();
+  const { isConnected, balance, address } = useWallet();
   const { storeHash, isSubmitting, error } = useBlockchain();
   const { estimatedCost, hasSufficientBalance } = useGasEstimation(balance);
   
@@ -31,7 +31,23 @@ export function TransactionForm() {
     const txId = crypto.randomUUID();
     
     try {
-      await storeHash(txId, hash);
+      const blockchainTxHash = await storeHash(txId, hash);
+      
+      // Store transaction locally
+      const transaction = {
+        id: txId,
+        ...formData,
+        status: 'confirmed',
+        blockchain_tx_id: blockchainTxHash,
+        created_at: new Date().toISOString(),
+        hash
+      };
+      
+      const stored = localStorage.getItem(`transactions_${address}`) || '[]';
+      const transactions = JSON.parse(stored);
+      transactions.unshift(transaction);
+      localStorage.setItem(`transactions_${address}`, JSON.stringify(transactions));
+      
       setSuccess(true);
       setFormData({
         farmer_id: '',

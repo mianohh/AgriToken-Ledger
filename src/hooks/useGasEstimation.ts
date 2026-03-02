@@ -20,7 +20,7 @@ export function useGasEstimation(balance: string): UseGasEstimationReturn {
   const estimateGas = async () => {
     setIsEstimating(true);
     try {
-      const provider = new ethers.JsonRpcProvider(import.meta.env.VITE_SEPOLIA_RPC_URL);
+      const provider = new ethers.JsonRpcProvider(import.meta.env.VITE_BASE_SEPOLIA_RPC_URL);
       const feeData = await provider.getFeeData();
       const gasPrice = feeData.gasPrice || ethers.parseUnits('20', 'gwei');
       const cost = (BigInt(estimatedGas) * gasPrice);

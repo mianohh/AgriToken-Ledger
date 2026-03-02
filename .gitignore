@@ -1,14 +1,14 @@
 node_modules/
 dist/
 .env
+.env.deployment
 .env.*
 !.env.example
+!.env.deployment.example
 cache/
 artifacts/
 typechain-types/
 coverage/
 *.log
 .DS_Store
-deploy.sh
-deploy-helper.sh
 package-lock.json

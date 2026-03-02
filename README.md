@@ -1,20 +1,24 @@
 # 🌾 AgriToken Ledger
 
-Blockchain-powered agricultural transaction tracking on Ethereum Sepolia with React, TypeScript, and Solidity.
+**🏆 Winner - ETHNile Open Track Hackathon**
 
-![Ethereum](https://img.shields.io/badge/Ethereum-Sepolia-3C3C3D?logo=ethereum)
+Blockchain-powered agricultural transaction tracking on Base Sepolia with React, TypeScript, and Solidity.
+
+![Base](https://img.shields.io/badge/Base-Sepolia-0052FF?logo=base)
 ![Solidity](https://img.shields.io/badge/Solidity-0.8.20-363636?logo=solidity)
 ![React](https://img.shields.io/badge/React-18-61DAFB?logo=react)
 ![TypeScript](https://img.shields.io/badge/TypeScript-5.0-3178C6?logo=typescript)
 
 ## Features
 
-- MetaMask wallet integration
-- Smart contract verification on Sepolia
-- Real-time gas estimation
-- Transaction dashboard with Etherscan links
-- Property-based testing (100+ iterations)
-- Glassmorphism UI design
+- ✅ MetaMask wallet integration with Base Sepolia
+- 🔒 Smart contract verification on blockchain
+- ⛽ Real-time gas estimation
+- 📊 Transaction dashboard with localStorage persistence
+- 🔍 Public transaction verification
+- 🔗 BaseScan explorer integration
+- 🧪 Property-based testing (100+ iterations)
+- 🎨 Glassmorphism UI design
 
 ## Quick Start
 
@@ -35,11 +39,11 @@ cp .env.example .env
 
 ```bash
 # Add to .env.deployment
-SEPOLIA_RPC_URL=https://eth-sepolia.g.alchemy.com/v2/YOUR_KEY
+BASE_SEPOLIA_RPC_URL=https://base-sepolia.g.alchemy.com/v2/YOUR_KEY
 PRIVATE_KEY=your_private_key
 
 # Deploy
-npx hardhat run scripts/deploy.js --network sepolia
+npx hardhat run scripts/deploy.js --network baseSepolia
 ```
 
 ### Run
@@ -51,7 +55,7 @@ npm run dev
 ## Tech Stack
 
 **Frontend:** React 18, TypeScript, Vite, ethers.js v6  
-**Blockchain:** Solidity 0.8.20, Hardhat, Sepolia  
+**Blockchain:** Solidity 0.8.20, Hardhat, Base Sepolia  
 **Testing:** Vitest, fast-check, Chai
 
 ## Project Structure
@@ -76,28 +80,57 @@ npx hardhat test           # Smart contract tests
 
 ## Configuration
 
-### Sepolia Testnet
+### Base Sepolia Testnet
 
-- Chain ID: `11155111`
-- Faucet: https://sepoliafaucet.com
-- Explorer: https://sepolia.etherscan.io
+- Chain ID: `84532`
+- Faucets: 
+  - https://www.alchemy.com/faucets/base-sepolia
+  - https://docs.base.org/docs/tools/network-faucets
+- Explorer: https://sepolia.basescan.org
 
 ### MetaMask Setup
 
-Add Sepolia via https://chainlist.org or manually with chain ID `11155111`.
+Add Base Sepolia via https://chainlist.org or manually with chain ID `84532`.
 
 ## Smart Contract
 
-Deployed at: `0x94485b644064cBa391E196881EfC7E159A2b63f3`
+**Deployed Contract Address**: `0x94485b644064cBa391E196881EfC7E159A2b63f3`
 
-View on [Etherscan](https://sepolia.etherscan.io/address/0x94485b644064cBa391E196881EfC7E159A2b63f3)
+The AgriTokenVerification smart contract stores transaction verification hashes on Base Sepolia. It includes:
+- `storeVerification()`: Store transaction hash on-chain
+- `getVerification()`: Retrieve verification record
+- `verifyHash()`: Verify transaction hash matches on-chain data
+- Duplicate prevention and input validation
+
+To deploy your own contract, update the address in `.env`
+
+## Deployment
+
+### Vercel Deployment
+
+1. Push to GitHub
+2. Import project in Vercel
+3. Add environment variables:
+   - `VITE_BASE_SEPOLIA_RPC_URL`
+   - `VITE_CONTRACT_ADDRESS`
+   - `VITE_CHAIN_ID`
+   - `VITE_EXPLORER_URL`
+4. Deploy
 
 ## Usage
 
-1. Connect MetaMask wallet
-2. Create transaction with produce details
-3. Approve blockchain submission
-4. View on dashboard or verify publicly
+1. **Connect Wallet**: Click "Connect Wallet" and approve MetaMask connection
+2. **Create Transaction**: Fill in agricultural transaction details (farmer ID, produce type, weight, buyer)
+3. **Submit to Blockchain**: Approve the transaction in MetaMask
+4. **View Dashboard**: See all your transactions with Transaction ID and Data Hash
+5. **Verify Publicly**: Use the Verify Transaction tab with Transaction ID and Data Hash to verify on-chain
+6. **View on BaseScan**: Click "View Blockchain TX" to see transaction on Base Sepolia explorer
+
+### Important Notes
+
+- **Data Hash vs Blockchain TX Hash**: The Data Hash is the hash of your agricultural transaction data stored in the smart contract. The Blockchain TX Hash is the hash of the blockchain transaction itself (visible on BaseScan).
+- **Verification**: Use the Transaction ID and Data Hash from the dashboard to verify transactions publicly.
+- **LocalStorage**: Transactions are stored locally in your browser for easy access. They remain verified on-chain.
 
 ## License
 
@@ -105,6 +138,9 @@ MIT
 
 ## Links
 
-- [Alchemy](https://dashboard.alchemy.com)
-- [Sepolia Faucet](https://sepoliafaucet.com)
+- [Live Demo](https://agritoken-ledger.vercel.app) (Coming soon)
+- [GitHub Repository](https://github.com/mianohh/AgriToken-Ledger)
+- [Alchemy Dashboard](https://dashboard.alchemy.com)
+- [Base Sepolia Faucet](https://www.alchemy.com/faucets/base-sepolia)
 - [MetaMask](https://metamask.io)
+- [BaseScan Explorer](https://sepolia.basescan.org)

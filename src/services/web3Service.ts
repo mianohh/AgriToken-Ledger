@@ -7,7 +7,7 @@ const CONTRACT_ABI = [
   "event TransactionVerified(string indexed transactionId, bytes32 transactionHash, address indexed farmerAddress, uint256 timestamp)"
 ];
 
-const SEPOLIA_CHAIN_ID = 11155111;
+const BASE_SEPOLIA_CHAIN_ID = 84532;
 
 export interface VerificationRecord {
   transactionHash: string;
@@ -65,10 +65,12 @@ class Web3Service {
   }
 
   async getVerificationRecord(transactionId: string): Promise<VerificationRecord> {
-    if (!this.contract) {
-      throw new Error('Contract not initialized');
-    }
-    const record = await this.contract.getVerification(transactionId);
+    const contractAddress = import.meta.env.VITE_CONTRACT_ADDRESS;
+    const rpcUrl = import.meta.env.VITE_BASE_SEPOLIA_RPC_URL;
+    const provider = new ethers.JsonRpcProvider(rpcUrl);
+    const contract = new Contract(contractAddress, CONTRACT_ABI, provider);
+    
+    const record = await contract.getVerification(transactionId);
     return {
       transactionHash: record[0],
       farmerAddress: record[1],
@@ -78,13 +80,15 @@ class Web3Service {
   }
 
   async verifyTransactionHash(transactionId: string, expectedHash: string): Promise<boolean> {
-    if (!this.contract) {
-      throw new Error('Contract not initialized');
-    }
-    return await this.contract.verifyHash(transactionId, expectedHash);
+    const contractAddress = import.meta.env.VITE_CONTRACT_ADDRESS;
+    const rpcUrl = import.meta.env.VITE_BASE_SEPOLIA_RPC_URL;
+    const provider = new ethers.JsonRpcProvider(rpcUrl);
+    const contract = new Contract(contractAddress, CONTRACT_ABI, provider);
+    
+    return await contract.verifyHash(transactionId, expectedHash);
   }
 
-  async switchToSepolia(): Promise<void> {
+  async switchToBaseSepolia(): Promise<void> {
     if (!window.ethereum) {
       throw new Error('MetaMask not installed');
     }
@@ -92,18 +96,18 @@ class Web3Service {
     try {
       await window.ethereum.request({
         method: 'wallet_switchEthereumChain',
-        params: [{ chainId: `0x${SEPOLIA_CHAIN_ID.toString(16)}` }],
+        params: [{ chainId: `0x${BASE_SEPOLIA_CHAIN_ID.toString(16)}` }],
       });
     } catch (error: any) {
       if (error.code === 4902) {
         await window.ethereum.request({
           method: 'wallet_addEthereumChain',
           params: [{
-            chainId: `0x${SEPOLIA_CHAIN_ID.toString(16)}`,
-            chainName: 'Sepolia Testnet',
-            rpcUrls: [import.meta.env.VITE_SEPOLIA_RPC_URL],
+            chainId: `0x${BASE_SEPOLIA_CHAIN_ID.toString(16)}`,
+            chainName: 'Base Sepolia',
+            rpcUrls: [import.meta.env.VITE_BASE_SEPOLIA_RPC_URL],
             nativeCurrency: { name: 'ETH', symbol: 'ETH', decimals: 18 },
-            blockExplorerUrls: [import.meta.env.VITE_ETHERSCAN_BASE_URL]
+            blockExplorerUrls: [import.meta.env.VITE_EXPLORER_URL]
           }]
         });
       } else {
