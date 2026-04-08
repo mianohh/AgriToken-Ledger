@@ -61,7 +61,7 @@ export function TransactionFormEnhanced() {
     try {
       const result = await processAgriImageWithSecurity(selectedImage, setPipelineStatus);
       setExtractedData(result);
-      
+
       // Auto-fill only valid detected data, leave invalid fields empty for manual entry
       setFormData({
         farmer_id:        isValidFarmerId(result.farmer_id)    ? result.farmer_id        : '',
@@ -71,10 +71,26 @@ export function TransactionFormEnhanced() {
         transaction_date: isValidDate(result.transaction_date) ? result.transaction_date : '',
       });
     } catch (err) {
+      // On connection error, show empty form for manual entry
       setPipelineStatus({
         stage: 'error',
-        message: `Analysis failed: ${err instanceof Error ? err.message : 'Unknown error'}. Fill manually.`,
+        message: `Connection to Oxlo AI failed. Please fill in the fields manually.`,
         progress: 0,
+      });
+      setExtractedData({
+        farmer_id: '',
+        produce_type: '',
+        weight_kg: 0,
+        buyer_name: '',
+        transaction_date: '',
+        validityScore: 0,
+        security_audit: {
+          metadata_match: false,
+          tamper_probability: 0,
+          visual_anomalies: [],
+          verdict: 'REVIEW_REQUIRED',
+          confidence_score: 0,
+        },
       });
     }
   };
