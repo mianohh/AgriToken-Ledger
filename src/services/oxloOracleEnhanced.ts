@@ -24,15 +24,26 @@ export interface PipelineStatus {
   progress: number;
 }
 
-function getClient(): OpenAI {
-  const apiKey = import.meta.env.VITE_OXLO_API_KEY;
-  if (!apiKey) throw new Error("VITE_OXLO_API_KEY is not configured.");
-  return new OpenAI({
-    baseURL: "https://api.oxlo.ai/v1",
-    apiKey,
-    dangerouslyAllowBrowser: true,
-    timeout: 60000,
-  });
+// Single chat completion call — proxy in prod, direct SDK in dev
+async function oxloChat(payload: object): Promise<string> {
+  if (import.meta.env.PROD) {
+    const res = await fetch('/api/oxlo', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+    if (!res.ok) throw new Error(`Proxy error ${res.status}: ${await res.text()}`);
+    const data = await res.json();
+    return data.choices?.[0]?.message?.content ?? '';
+  } else {
+    const client = new OpenAI({
+      baseURL: 'https://api.oxlo.ai/v1',
+      apiKey: import.meta.env.VITE_OXLO_API_KEY,
+      dangerouslyAllowBrowser: true,
+    });
+    const res = await client.chat.completions.create(payload as any);
+    return res.choices[0].message.content ?? '';
+  }
 }
 
 async function stage1_VisionExtraction(
@@ -41,8 +52,7 @@ async function stage1_VisionExtraction(
 ): Promise<{ extractedText: string; forensicAnalysis: string }> {
   onProgress({ stage: "vision", message: "Kimi-k2.5 (Vision) parsing document...", progress: 25 });
 
-  const client = getClient();
-  const response = await client.chat.completions.create({
+  const fullResponse = await oxloChat({
     model: "kimi-k2.5",
     messages: [
       {
@@ -81,7 +91,6 @@ DATA: [extracted information]`,
     temperature: 0.1,
   });
 
-  const fullResponse = response.choices[0].message.content || "";
   const forensicMatch = fullResponse.match(/FORENSIC:(.*?)(?=DATA:|$)/s);
   const dataMatch = fullResponse.match(/DATA:(.*)/s);
 
@@ -98,56 +107,58 @@ async function stage2_ReasoningValidation(
 ): Promise<ExtractedAgriData> {
   onProgress({ stage: "reasoning", message: "DeepSeek-r1 (Reasoning) validating and structuring payload...", progress: 60 });
 
-  const client = getClient();
-  const response = await client.chat.completions.create({
+  const content = await oxloChat({
     model: "deepseek-r1-0528",
     temperature: 0.1,
+    max_tokens: 1500,
     messages: [
       {
         role: "system",
-        content: `You are an agricultural data oracle. Return ONLY this JSON structure (no markdown, no explanation):
+        content: `You are an agricultural data oracle. Output ONLY a valid JSON object with these exact keys:
 {
-  "farmer_id": "string",
-  "produce_type": "string",
+  "farmer_id": string,
+  "produce_type": string,
   "weight_kg": number,
-  "buyer_name": "string",
+  "buyer_name": string,
   "transaction_date": "YYYY-MM-DD",
-  "validityScore": number,
+  "validityScore": number 0-100,
   "security_audit": {
     "metadata_match": boolean,
-    "tamper_probability": number,
-    "visual_anomalies": ["string"],
-    "verdict": "SAFE_TO_HASH" or "FRAUD_DETECTED" or "REVIEW_REQUIRED",
-    "confidence_score": number
+    "tamper_probability": number 0.0-1.0,
+    "visual_anomalies": string[],
+    "verdict": "SAFE_TO_HASH" | "FRAUD_DETECTED" | "REVIEW_REQUIRED",
+    "confidence_score": number 0-100
   }
 }
-If a field cannot be determined from the document, omit it or set it to null. Do not invent data. Always return valid JSON.`,
+Use null for unknown fields. No markdown. No explanation. JSON only.`,
       },
       {
         role: "user",
         content: `Extracted text: ${extractedText}\n\nForensic analysis: ${forensicAnalysis}`,
       },
     ],
-    max_tokens: 500,
   });
 
-  const content = response.choices[0].message.content || "{}";
-  const cleaned = content.replace(/```json\n?|\n?```/g, "").trim();
-  const parsed = JSON.parse(cleaned);
+  // Strip <think>...</think> block that deepseek-r1 prepends before its answer
+  const stripped = content.replace(/<think>[\s\S]*?<\/think>/gi, '').trim();
+  // Pull out the first {...} JSON block regardless of any surrounding text
+  const match = stripped.match(/\{[\s\S]*\}/);
+  if (!match) throw new Error(`DeepSeek returned no JSON. Raw: ${stripped.slice(0, 300)}`);
+  const parsed = JSON.parse(match[0]);
 
   return {
-    farmer_id: parsed.farmer_id || "",
-    produce_type: parsed.produce_type || "",
-    weight_kg: parsed.weight_kg || 0,
-    buyer_name: parsed.buyer_name || "",
-    transaction_date: parsed.transaction_date || "",
-    validityScore: parsed.validityScore || 0,
+    farmer_id:        parsed.farmer_id        || '',
+    produce_type:     parsed.produce_type     || '',
+    weight_kg:        parsed.weight_kg        || 0,
+    buyer_name:       parsed.buyer_name       || '',
+    transaction_date: parsed.transaction_date || '',
+    validityScore:    parsed.validityScore    || 0,
     security_audit: {
-      metadata_match: parsed.security_audit?.metadata_match ?? true,
-      tamper_probability: parsed.security_audit?.tamper_probability ?? 0.1,
-      visual_anomalies: parsed.security_audit?.visual_anomalies || [],
-      verdict: parsed.security_audit?.verdict || "REVIEW_REQUIRED",
-      confidence_score: parsed.security_audit?.confidence_score || 0,
+      metadata_match:    parsed.security_audit?.metadata_match    ?? true,
+      tamper_probability:parsed.security_audit?.tamper_probability ?? 0.1,
+      visual_anomalies:  parsed.security_audit?.visual_anomalies  || [],
+      verdict:           parsed.security_audit?.verdict           || 'REVIEW_REQUIRED',
+      confidence_score:  parsed.security_audit?.confidence_score  || 0,
     },
   };
 }
