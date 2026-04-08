@@ -60,28 +60,27 @@ async function stage1_VisionExtraction(
         content: [
           {
             type: "text",
-            text: `You are a forensic document analyst. Perform TWO tasks:
+            text: `You are a forensic document analyst. Perform TWO tasks on this agricultural document image.
 
 TASK 1 - FORENSIC ANALYSIS:
-Analyze this image for signs of digital manipulation:
-- Font consistency throughout the document
-- Unusual blurring or pixelation around numbers
-- Lighting inconsistencies
-- Paper texture uniformity
-- Signs of copy-paste or digital editing
-Output a tamper_probability score from 0.0 (pristine) to 1.0 (highly suspicious).
+Check for signs of digital manipulation (font inconsistency, pixelation around numbers, lighting issues, copy-paste artifacts). Output a tamper_probability score 0.0-1.0.
 
 TASK 2 - DATA EXTRACTION:
-Extract agricultural transaction data:
-- Farmer ID or name
-- Crop/produce type
-- Weight in kg
-- Buyer name
-- Transaction date
+Extract these fields. If a field is not visible, write "not found".
+- Farmer ID or farmer name
+- Produce/crop type (e.g. Maize, Wheat, Tomatoes, Coffee — use the simple common name)
+- Total weight in kg (numeric value only)
+- Buyer name or company
+- Transaction or receipt date
 
-Format your response as:
-FORENSIC: [your analysis and tamper_probability score]
-DATA: [extracted information]`,
+Respond in this exact format:
+FORENSIC: [analysis] tamper_probability=[0.0-1.0]
+DATA:
+farmer_id: [value or not found]
+produce_type: [simple crop name or not found]
+weight_kg: [number or not found]
+buyer_name: [value or not found]
+transaction_date: [YYYY-MM-DD or not found]`,
           },
           { type: "image_url", image_url: { url: base64Image } },
         ],
@@ -130,7 +129,12 @@ async function stage2_ReasoningValidation(
     "confidence_score": number 0-100
   }
 }
-Use null for unknown fields. No markdown. No explanation. JSON only.`,
+Rules:
+- produce_type MUST be a simple crop name like "Maize", "Wheat", "Tomatoes". Never null or empty.
+- If a field says "not found", use empty string "" for strings and 0 for numbers.
+- tamper_probability comes from the forensic analysis score.
+- verdict: FRAUD_DETECTED if tamper_probability>0.7, REVIEW_REQUIRED if 0.4-0.7, else SAFE_TO_HASH.
+- No markdown. No explanation. JSON only.`,
       },
       {
         role: "user",
