@@ -38,7 +38,6 @@ export function NetworkStatus() {
 
   return (
     <div className={`network-status ${isCorrectNetwork ? 'correct' : 'incorrect'}`}>
-      <span>{isCorrectNetwork ? '🟢' : '🔴'}</span>
       <span>{isCorrectNetwork ? 'Base Sepolia' : `Wrong Network (${chainId})`}</span>
       {!isCorrectNetwork && (
         <button onClick={switchNetwork}>Switch to Base Sepolia</button>

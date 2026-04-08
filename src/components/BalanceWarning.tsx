@@ -12,7 +12,7 @@ export function BalanceWarning({ balance, isConnected }: BalanceWarningProps) {
 
   return (
     <div className="balance-warning">
-      <p>⚠️ Low balance: {balanceNum.toFixed(4)} ETH</p>
+      <p>Low balance: {balanceNum.toFixed(4)} ETH</p>
       <p>Get testnet ETH from:</p>
       <ul>
         <li><a href="https://www.alchemy.com/faucets/base-sepolia" target="_blank" rel="noopener noreferrer">Alchemy Base Sepolia Faucet</a></li>
