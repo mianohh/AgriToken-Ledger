@@ -3,6 +3,7 @@ import { useBlockchain } from '../hooks/useBlockchain';
 import { useWallet } from '../hooks/useWallet';
 import { useGasEstimation } from '../hooks/useGasEstimation';
 import { generateTransactionHash } from '../utils/hash';
+import { processAgriImage } from '../services/oxloOracle';
 
 export function TransactionForm() {
   const { isConnected, balance, address } = useWallet();
@@ -17,6 +18,54 @@ export function TransactionForm() {
     transaction_date: new Date().toISOString().split('T')[0]
   });
   const [success, setSuccess] = useState(false);
+  const [aiProcessing, setAiProcessing] = useState(false);
+  const [aiError, setAiError] = useState<string | null>(null);
+  const [selectedImage, setSelectedImage] = useState<string | null>(null);
+  const [extractedData, setExtractedData] = useState<any>(null);
+
+  const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const base64Image = event.target?.result as string;
+      setSelectedImage(base64Image);
+      setAiError(null);
+      setExtractedData(null);
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleAnalyzeImage = async () => {
+    if (!selectedImage) return;
+
+    setAiProcessing(true);
+    setAiError(null);
+
+    try {
+      console.log('🔍 Starting AI extraction...');
+      const extractedData = await processAgriImage(selectedImage);
+      console.log('✅ AI extraction successful:', extractedData);
+      
+      setExtractedData(extractedData);
+      
+      // Auto-fill form with extracted data
+      setFormData({
+        farmer_id: extractedData.farmer_id || '',
+        produce_type: extractedData.produce_type || '',
+        weight_kg: extractedData.weight_kg || 0,
+        buyer_name: extractedData.buyer_name || '',
+        transaction_date: extractedData.transaction_date || new Date().toISOString().split('T')[0]
+      });
+      
+      setAiProcessing(false);
+    } catch (err) {
+      console.error('❌ Oxlo AI error:', err);
+      setAiError(`AI extraction failed: ${err instanceof Error ? err.message : 'Unknown error'}. Please fill manually.`);
+      setAiProcessing(false);
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -67,6 +116,60 @@ export function TransactionForm() {
 
   return (
     <form onSubmit={handleSubmit}>
+      <div className="ai-upload-section" style={{marginBottom: '20px', padding: '15px', border: '2px dashed #3498db', borderRadius: '8px', backgroundColor: 'rgba(52, 152, 219, 0.05)'}}>
+        <label htmlFor="image-upload" style={{display: 'block', marginBottom: '10px', fontWeight: 'bold', fontSize: '16px'}}>
+          🤖 AI-Powered Data Extraction (Oxlo.ai)
+        </label>
+        
+        <input
+          id="image-upload"
+          type="file"
+          accept="image/*"
+          onChange={handleImageSelect}
+          disabled={aiProcessing}
+          style={{marginBottom: '10px', display: 'block'}}
+        />
+        
+        {selectedImage && !aiProcessing && !extractedData && (
+          <button 
+            type="button"
+            onClick={handleAnalyzeImage}
+            style={{
+              padding: '10px 20px',
+              backgroundColor: '#3498db',
+              color: 'white',
+              border: 'none',
+              borderRadius: '5px',
+              cursor: 'pointer',
+              fontWeight: 'bold',
+              fontSize: '14px'
+            }}
+          >
+            🔍 Analyze Image with AI
+          </button>
+        )}
+        
+        {aiProcessing && (
+          <div style={{padding: '10px', backgroundColor: '#e3f2fd', borderRadius: '5px'}}>
+            <p style={{color: '#1976d2', margin: 0, fontWeight: 'bold'}}>🔄 AI analyzing image...</p>
+            <p style={{color: '#666', margin: '5px 0 0 0', fontSize: '12px'}}>Stage 1: Vision extraction → Stage 2: Validation</p>
+          </div>
+        )}
+        
+        {extractedData && (
+          <div style={{padding: '10px', backgroundColor: '#e8f5e9', borderRadius: '5px', marginTop: '10px'}}>
+            <p style={{color: '#2e7d32', margin: 0, fontWeight: 'bold'}}>✅ Data extracted successfully!</p>
+            <p style={{color: '#666', margin: '5px 0 0 0', fontSize: '12px'}}>Validity Score: {extractedData.validityScore}/100</p>
+          </div>
+        )}
+        
+        {aiError && (
+          <div style={{padding: '10px', backgroundColor: '#ffebee', borderRadius: '5px', marginTop: '10px'}}>
+            <p style={{color: '#c62828', margin: 0}}>⚠️ {aiError}</p>
+          </div>
+        )}
+      </div>
+      
       <input
         placeholder="Farmer ID"
         value={formData.farmer_id}
