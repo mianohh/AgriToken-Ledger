@@ -37,16 +37,16 @@ export function VerifyTransaction() {
           value={expectedHash}
           onChange={(e) => setExpectedHash(e.target.value)}
           required
-          title="Use the Data Hash from the transaction dashboard, not the blockchain transaction hash"
+          title="Use the Data Hash from the transaction dashboard"
         />
         <button type="submit" disabled={loading}>
-          {loading ? '🔍 Verifying...' : '🔍 Verify on Blockchain'}
+          {loading ? 'Verifying...' : 'Verify on Blockchain'}
         </button>
       </form>
       
       {result && (
         <div className="result">
-          <h3>{result.isVerified ? '✅ Verified' : '❌ Not Verified'}</h3>
+          <h3>{result.isVerified ? 'Verified' : 'Not Verified'}</h3>
           {result.record && (
             <>
               <p><strong>Farmer Address:</strong> {result.record.farmerAddress}</p>
@@ -57,7 +57,7 @@ export function VerifyTransaction() {
                 target="_blank"
                 rel="noopener noreferrer"
               >
-                View on BaseScan →
+                View on BaseScan
               </a>
             </>
           )}

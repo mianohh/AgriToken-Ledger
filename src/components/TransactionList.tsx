@@ -47,17 +47,18 @@ export function TransactionList() {
           <div className="transaction-info">
             <strong>{tx.produce_type}</strong>
             <br />
-            <small>Transaction ID: <code style={{userSelect: 'all'}}>{tx.id}</code></small>
-            <br />
+            <small style={{ display: 'block', marginTop: '6px' }}>
+              TX ID: <code style={{ userSelect: 'all', fontFamily: 'JetBrains Mono, monospace' }}>{tx.id}</code>
+            </small>
             {tx.hash && (
-              <>
-                <small>Data Hash: <code style={{userSelect: 'all'}}>{tx.hash}</code></small>
-                <br />
-              </>
+              <small style={{ display: 'block', marginTop: '4px' }}>
+                Data Hash: <code style={{ userSelect: 'all', fontFamily: 'JetBrains Mono, monospace' }}>{tx.hash.slice(0, 18)}...{tx.hash.slice(-8)}</code>
+              </small>
             )}
-            <small>Date: {new Date(tx.created_at).toLocaleString()}</small>
-            <br />
-            <span className="status-badge status-confirmed">
+            <small style={{ display: 'block', marginTop: '4px' }}>
+              {new Date(tx.created_at).toLocaleString()}
+            </small>
+            <span className="status-badge status-confirmed" style={{ marginTop: '8px', display: 'inline-block' }}>
               confirmed
             </span>
           </div>
@@ -67,7 +68,7 @@ export function TransactionList() {
               target="_blank"
               rel="noopener noreferrer"
             >
-              <button>View Blockchain TX</button>
+              <button>View on BaseScan</button>
             </a>
           </div>
         </div>
