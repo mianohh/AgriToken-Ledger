@@ -52,7 +52,7 @@ export function TransactionList() {
             </small>
             {tx.hash && (
               <small style={{ display: 'block', marginTop: '4px' }}>
-                Data Hash: <code style={{ userSelect: 'all', fontFamily: 'JetBrains Mono, monospace' }}>{tx.hash.slice(0, 18)}...{tx.hash.slice(-8)}</code>
+                Data Hash: <code style={{ userSelect: 'all', fontFamily: 'JetBrains Mono, monospace', wordBreak: 'break-all' }}>{tx.hash}</code>
               </small>
             )}
             <small style={{ display: 'block', marginTop: '4px' }}>
