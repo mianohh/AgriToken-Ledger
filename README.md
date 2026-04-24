@@ -1,16 +1,4 @@
-# AgriToken Ledger - OxBuild Omni-Oracle Edition
-
-> **OxBuild Hackathon Evaluation Metadata**
-> - **Registered Oxlo Email:** alexmiano101@gmail.com
-> - **Live Demo:** https://agritokenledger.vercel.app
-> - **GitHub Repository:** https://github.com/mianohh/AgriToken-Ledger
-> - **Architecture:** Model Context Protocol (MCP) Chaining
-> - **Premium Models Used:**
->   1. `kimi-k2.5` (Vision/Multimodal Extraction)
->   2. `deepseek-r1-0528` (Frontier-class Reasoning & JSON Structuring)
-
-**Winner - ETHNile Open Track Hackathon**
-**OxBuild Hackathon Participant - AI-Powered Agricultural Oracle**
+# AgriToken Ledger
 
 Blockchain-powered agricultural transaction tracking on Base Sepolia with AI data extraction using Oxlo.ai.
 
@@ -52,7 +40,6 @@ VITE_OXLO_API_KEY=your_oxlo_api_key
 ### Deploy Contract
 
 ```bash
-# Set in your environment
 BASE_SEPOLIA_RPC_URL=https://base-sepolia.g.alchemy.com/v2/YOUR_KEY
 PRIVATE_KEY=your_private_key
 
@@ -76,6 +63,7 @@ npm run dev
 ```
 ├── contracts/              # Solidity smart contracts
 ├── scripts/                # Deployment scripts
+├── api/                    # Vercel serverless functions
 └── src/
     ├── components/         # React UI components
     ├── hooks/              # Custom hooks (wallet, blockchain, gas)
@@ -83,9 +71,9 @@ npm run dev
     └── utils/              # Hash generation utilities
 ```
 
-## Oxlo AI Integration
+## AI Integration
 
-The application uses a two-stage Agentic MCP (Model Context Protocol) pipeline:
+The application uses a two-stage pipeline:
 
 **Stage 1 - kimi-k2.5 (Vision):**
 - Reads and parses the uploaded agricultural document image
@@ -94,12 +82,10 @@ The application uses a two-stage Agentic MCP (Model Context Protocol) pipeline:
 - Outputs extracted text and a tamper probability score
 
 **Stage 2 - deepseek-r1-0528 (Reasoning):**
-- Receives the raw output from kimi-k2.5 directly as input (MCP chaining)
+- Receives the raw output from kimi-k2.5 directly as input
 - Validates and structures the data into a typed JSON payload
 - Calculates a validity score (0-100)
 - Issues a security verdict: SAFE_TO_HASH, FRAUD_DETECTED, or REVIEW_REQUIRED
-
-**Agentic MCP (Model Context Protocol) Architecture:** Output from kimi-k2.5 directly feeds into deepseek-r1-0528 for multi-stage verification.
 
 ## Configuration
 
@@ -118,8 +104,6 @@ Add Base Sepolia via https://chainlist.org or manually with chain ID `84532`.
 ## Smart Contract
 
 **Deployed Contract Address:** `0x94485b644064cBa391E196881EfC7E159A2b63f3`
-
-The AgriTokenVerification smart contract stores transaction verification hashes on Base Sepolia:
 
 - `storeVerification()`: Store transaction hash on-chain
 - `getVerification()`: Retrieve verification record
