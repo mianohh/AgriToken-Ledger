@@ -113,7 +113,7 @@ async function stage2_ReasoningValidation(
     messages: [
       {
         role: "system",
-        content: `You are an agricultural data oracle. Output ONLY a valid JSON object with these exact keys:
+        content: `You are an agricultural data analyst. Output ONLY a valid JSON object with these exact keys:
 {
   "farmer_id": string,
   "produce_type": string,
@@ -171,7 +171,7 @@ export async function processAgriImageWithSecurity(
   base64Image: string,
   onProgress: (status: PipelineStatus) => void
 ): Promise<ExtractedAgriData> {
-  onProgress({ stage: "idle", message: "Initializing Oxlo AI Oracle Pipeline...", progress: 0 });
+  onProgress({ stage: "idle", message: "Initializing Oxlo AI Pipeline...", progress: 0 });
 
   try {
     onProgress({ stage: "vision", message: "Extracting image metadata...", progress: 10 });
@@ -179,7 +179,7 @@ export async function processAgriImageWithSecurity(
     const { extractedText, forensicAnalysis } = await stage1_VisionExtraction(base64Image, onProgress);
     const validatedData = await stage2_ReasoningValidation(extractedText, forensicAnalysis, onProgress);
 
-    onProgress({ stage: "complete", message: "AI Oracle Pipeline complete.", progress: 100 });
+    onProgress({ stage: "complete", message: "AI Pipeline complete.", progress: 100 });
     return validatedData;
 
   } catch (error) {
