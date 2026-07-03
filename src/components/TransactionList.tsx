@@ -1,5 +1,9 @@
 import { useState, useEffect } from 'react';
 import { useWallet } from '../hooks/useWallet';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { ExternalLink, Hash, Clock, CheckCircle, Sprout } from 'lucide-react';
 
 interface Transaction {
   id: string;
@@ -33,46 +37,79 @@ export function TransactionList() {
   };
 
   if (!isConnected) {
-    return <p>Connect your wallet to view transactions</p>;
+    return (
+      <div className="text-center py-10 space-y-3">
+        <div className="mx-auto w-14 h-14 rounded-full bg-muted flex items-center justify-center">
+          <Sprout className="w-7 h-7 text-muted-foreground" />
+        </div>
+        <p className="text-muted-foreground">Connect your wallet to view transactions</p>
+      </div>
+    );
   }
 
   if (transactions.length === 0) {
-    return <p>No transactions yet. Create your first transaction!</p>;
+    return (
+      <div className="text-center py-10 space-y-3">
+        <div className="mx-auto w-14 h-14 rounded-full bg-primary/10 flex items-center justify-center">
+          <Sprout className="w-7 h-7 text-primary" />
+        </div>
+        <p className="text-muted-foreground">No transactions yet. Create your first transaction!</p>
+      </div>
+    );
   }
 
   return (
-    <div className="transaction-list">
-      {transactions.map(tx => (
-        <div key={tx.id} className="transaction-item">
-          <div className="transaction-info">
-            <strong>{tx.produce_type}</strong>
-            <br />
-            <small style={{ display: 'block', marginTop: '6px' }}>
-              TX ID: <code style={{ userSelect: 'all', fontFamily: 'JetBrains Mono, monospace' }}>{tx.id}</code>
-            </small>
-            {tx.hash && (
-              <small style={{ display: 'block', marginTop: '4px' }}>
-                Data Hash: <code style={{ userSelect: 'all', fontFamily: 'JetBrains Mono, monospace', wordBreak: 'break-all' }}>{tx.hash}</code>
-              </small>
-            )}
-            <small style={{ display: 'block', marginTop: '4px' }}>
-              {new Date(tx.created_at).toLocaleString()}
-            </small>
-            <span className="status-badge status-confirmed" style={{ marginTop: '8px', display: 'inline-block' }}>
-              confirmed
-            </span>
+    <ScrollArea className="max-h-[600px]">
+      <div className="space-y-3">
+        {transactions.map((tx) => (
+          <div
+            key={tx.id}
+            className="group p-4 rounded-xl border border-border bg-card hover:border-agri-green/30 hover:shadow-[0_0_20px_rgba(0,255,136,0.1)] transition-all duration-300 relative overflow-hidden"
+          >
+            <div className="absolute left-0 top-0 w-[3px] h-full bg-gradient-to-b from-agri-green to-agri-dark opacity-0 group-hover:opacity-100 transition-opacity" />
+
+            <div className="flex items-start justify-between gap-4">
+              <div className="flex-1 min-w-0 space-y-2">
+                <div className="flex items-center gap-2">
+                  <h4 className="font-display font-semibold text-foreground">{tx.produce_type}</h4>
+                  <Badge variant="outline" className="border-agri-green/50 text-agri-green text-[10px] gap-1">
+                    <CheckCircle className="w-3 h-3" />
+                    confirmed
+                  </Badge>
+                </div>
+
+                <div className="space-y-1">
+                  <p className="text-xs font-mono text-muted-foreground flex items-center gap-1.5">
+                    <Hash className="w-3 h-3" />
+                    TX: <span className="select-all text-foreground/80">{tx.id}</span>
+                  </p>
+                  {tx.hash && (
+                    <p className="text-xs font-mono text-muted-foreground flex items-center gap-1.5 break-all">
+                      <Hash className="w-3 h-3 shrink-0" />
+                      Hash: <span className="select-all text-foreground/80">{tx.hash}</span>
+                    </p>
+                  )}
+                  <p className="text-xs text-muted-foreground flex items-center gap-1.5">
+                    <Clock className="w-3 h-3" />
+                    {new Date(tx.created_at).toLocaleString()}
+                  </p>
+                </div>
+              </div>
+
+              <Button variant="outline" size="sm" asChild className="shrink-0 gap-1.5 border-border hover:border-primary/50">
+                <a
+                  href={`${import.meta.env.VITE_EXPLORER_URL}/tx/${tx.blockchain_tx_id}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  BaseScan
+                  <ExternalLink className="w-3.5 h-3.5" />
+                </a>
+              </Button>
+            </div>
           </div>
-          <div className="transaction-actions">
-            <a
-              href={`${import.meta.env.VITE_EXPLORER_URL}/tx/${tx.blockchain_tx_id}`}
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              <button>View on BaseScan</button>
-            </a>
-          </div>
-        </div>
-      ))}
-    </div>
+        ))}
+      </div>
+    </ScrollArea>
   );
 }

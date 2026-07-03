@@ -1,5 +1,9 @@
 import { useState, useEffect } from 'react';
 import { web3Service } from '../services/web3Service';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Globe, RefreshCw } from 'lucide-react';
+import { cn } from '@/lib/utils';
 
 const BASE_SEPOLIA_CHAIN_ID = 84532;
 
@@ -22,7 +26,7 @@ export function NetworkStatus() {
       setChainId(currentChainId);
       setIsCorrectNetwork(currentChainId === BASE_SEPOLIA_CHAIN_ID);
     } catch (err) {
-      // Wallet not connected yet, ignore
+      // Wallet not connected yet
     }
   };
 
@@ -37,10 +41,29 @@ export function NetworkStatus() {
   if (!chainId) return null;
 
   return (
-    <div className={`network-status ${isCorrectNetwork ? 'correct' : 'incorrect'}`}>
-      <span>{isCorrectNetwork ? 'Base Sepolia' : `Wrong Network (${chainId})`}</span>
+    <div className="flex items-center gap-2">
+      <Badge
+        variant="outline"
+        className={cn(
+          "gap-1.5 font-mono text-xs",
+          isCorrectNetwork
+            ? "border-agri-green/50 text-agri-green"
+            : "border-destructive/50 text-destructive"
+        )}
+      >
+        <Globe className="w-3 h-3" />
+        {isCorrectNetwork ? 'Base Sepolia' : `Chain ${chainId}`}
+      </Badge>
       {!isCorrectNetwork && (
-        <button onClick={switchNetwork}>Switch to Base Sepolia</button>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={switchNetwork}
+          className="gap-1.5 text-xs h-7"
+        >
+          <RefreshCw className="w-3 h-3" />
+          Switch
+        </Button>
       )}
     </div>
   );

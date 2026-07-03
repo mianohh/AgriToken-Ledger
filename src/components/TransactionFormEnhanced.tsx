@@ -3,12 +3,20 @@ import { useBlockchain } from '../hooks/useBlockchain';
 import { useWallet } from '../hooks/useWallet';
 import { useGasEstimation } from '../hooks/useGasEstimation';
 import { generateTransactionHash } from '../utils/hash';
-import { processAgriImageWithSecurity, PipelineStatus, ExtractedAgriData } from '../services/oxloOracleEnhanced';
+import { processAgriImageWithSecurity, PipelineStatus, ExtractedAgriData } from '../services/oxloAI';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Badge } from '@/components/ui/badge';
+import { Progress } from '@/components/ui/progress';
+import { Card, CardContent } from '@/components/ui/card';
+import { Upload, CheckCircle, AlertTriangle, Shield, FileText, Loader2, Zap } from 'lucide-react';
+import { cn } from '@/lib/utils';
 
-const verdictColors: Record<string, { bg: string; border: string; color: string }> = {
-  SAFE_TO_HASH:    { bg: 'rgba(0,255,136,0.08)',  border: 'var(--ai-green-glow)',    color: 'var(--ai-green-glow)' },
-  FRAUD_DETECTED:  { bg: 'rgba(239,68,68,0.08)',  border: 'var(--error-red)',        color: 'var(--error-red)' },
-  REVIEW_REQUIRED: { bg: 'rgba(245,158,11,0.08)', border: 'var(--warning-amber)',    color: 'var(--warning-amber)' },
+const verdictConfig: Record<string, { bg: string; border: string; text: string; icon: React.ReactNode }> = {
+  SAFE_TO_HASH:    { bg: "bg-agri-green/5",  border: "border-agri-green/30",   text: "text-agri-green",  icon: <CheckCircle className="w-4 h-4" /> },
+  FRAUD_DETECTED:  { bg: "bg-destructive/5", border: "border-destructive/30",  text: "text-destructive", icon: <AlertTriangle className="w-4 h-4" /> },
+  REVIEW_REQUIRED: { bg: "bg-amber-500/5",   border: "border-amber-500/30",   text: "text-amber-400",   icon: <Shield className="w-4 h-4" /> },
 };
 
 export function TransactionFormEnhanced() {
@@ -45,15 +53,13 @@ export function TransactionFormEnhanced() {
   };
 
   const handleFile = (file: File) => {
-    // Compress image to max 800px wide, JPEG 0.7 quality before sending to AI
-    // This reduces payload from ~3MB to ~80KB, cutting API time by ~60%
     const img = new Image();
     const objectUrl = URL.createObjectURL(file);
     img.onload = () => {
       const MAX = 800;
       const scale = Math.min(1, MAX / Math.max(img.width, img.height));
       const canvas = document.createElement('canvas');
-      canvas.width  = Math.round(img.width  * scale);
+      canvas.width = Math.round(img.width * scale);
       canvas.height = Math.round(img.height * scale);
       canvas.getContext('2d')!.drawImage(img, 0, 0, canvas.width, canvas.height);
       const compressed = canvas.toDataURL('image/jpeg', 0.7);
@@ -67,45 +73,32 @@ export function TransactionFormEnhanced() {
   };
 
   const isValidFarmerId = (v: string) => !!v && v !== 'UNKNOWN' && v !== 'EXTRACTION_FAILED' && v !== 'Unknown' && v !== 'null';
-  const isValidString   = (v: string) => !!v && !['Unknown', 'Unknown Crop', 'Unknown Buyer', 'UNKNOWN', 'EXTRACTION_FAILED', 'null', 'N/A', 'n/a'].includes(v);
-  const isValidWeight   = (v: number) => !!v && v > 0;
-  const isValidDate     = (v: string) => !!v && /^\d{4}-\d{2}-\d{2}$/.test(v);
+  const isValidString = (v: string) => !!v && !['Unknown', 'Unknown Crop', 'Unknown Buyer', 'UNKNOWN', 'EXTRACTION_FAILED', 'null', 'N/A', 'n/a'].includes(v);
+  const isValidWeight = (v: number) => !!v && v > 0;
+  const isValidDate = (v: string) => !!v && /^\d{4}-\d{2}-\d{2}$/.test(v);
 
   const handleAnalyzeImage = async () => {
     if (!selectedImage) return;
     try {
       const result = await processAgriImageWithSecurity(selectedImage, setPipelineStatus);
       setExtractedData(result);
-
-      // Auto-fill only valid detected data, leave invalid fields empty for manual entry
       setFormData({
-        farmer_id:        isValidFarmerId(result.farmer_id)    ? result.farmer_id        : '',
-        produce_type:     isValidString(result.produce_type)   ? result.produce_type     : '',
-        weight_kg:        isValidWeight(result.weight_kg)      ? result.weight_kg        : 0,
-        buyer_name:       isValidString(result.buyer_name)     ? result.buyer_name       : '',
+        farmer_id: isValidFarmerId(result.farmer_id) ? result.farmer_id : '',
+        produce_type: isValidString(result.produce_type) ? result.produce_type : '',
+        weight_kg: isValidWeight(result.weight_kg) ? result.weight_kg : 0,
+        buyer_name: isValidString(result.buyer_name) ? result.buyer_name : '',
         transaction_date: isValidDate(result.transaction_date) ? result.transaction_date : '',
       });
     } catch (err) {
-      // On connection error, show empty form for manual entry
       setPipelineStatus({
         stage: 'error',
         message: `Connection to Oxlo AI failed. Please fill in the fields manually.`,
         progress: 0,
       });
       setExtractedData({
-        farmer_id: '',
-        produce_type: '',
-        weight_kg: 0,
-        buyer_name: '',
-        transaction_date: '',
+        farmer_id: '', produce_type: '', weight_kg: 0, buyer_name: '', transaction_date: '',
         validityScore: 0,
-        security_audit: {
-          metadata_match: false,
-          tamper_probability: 0,
-          visual_anomalies: [],
-          verdict: 'REVIEW_REQUIRED',
-          confidence_score: 0,
-        },
+        security_audit: { metadata_match: false, tamper_probability: 0, visual_anomalies: [], verdict: 'REVIEW_REQUIRED', confidence_score: 0 },
       });
     }
   };
@@ -123,13 +116,9 @@ export function TransactionFormEnhanced() {
     try {
       const blockchainTxHash = await storeHash(txId, hash);
       const transaction = {
-        id: txId,
-        ...formData,
-        status: 'confirmed',
-        blockchain_tx_id: blockchainTxHash,
-        created_at: new Date().toISOString(),
-        hash,
-        security_audit: extractedData?.security_audit,
+        id: txId, ...formData, status: 'confirmed' as const,
+        blockchain_tx_id: blockchainTxHash, created_at: new Date().toISOString(),
+        hash, security_audit: extractedData?.security_audit,
       };
       const stored = localStorage.getItem(`transactions_${walletAddress}`) || '[]';
       const transactions = JSON.parse(stored);
@@ -148,89 +137,72 @@ export function TransactionFormEnhanced() {
 
   if (!isConnected) {
     return (
-      <div style={{ textAlign: 'center', padding: '40px' }}>
-        <h3 style={{ fontFamily: 'Space Grotesk, sans-serif', color: 'var(--text-primary)', marginBottom: '12px' }}>
-          Phase 1 — Web3 Handshake
-        </h3>
-        <p style={{ color: 'var(--text-secondary)' }}>Connect your wallet to Base Sepolia to begin</p>
+      <div className="text-center py-10 space-y-3">
+        <div className="mx-auto w-14 h-14 rounded-full bg-primary/10 flex items-center justify-center">
+          <Zap className="w-7 h-7 text-primary" />
+        </div>
+        <h3 className="font-display text-lg font-semibold text-foreground">Phase 1 — Web3 Handshake</h3>
+        <p className="text-muted-foreground text-sm">Connect your wallet to Base Sepolia to begin</p>
       </div>
     );
   }
 
   const verdict = extractedData?.security_audit?.verdict;
-  const verdictStyle = verdict ? verdictColors[verdict] : null;
+  const verdictStyle = verdict ? verdictConfig[verdict] : null;
+
+  const stages = ['vision', 'reasoning', 'validation', 'complete'] as const;
+  const stageIndex = ['idle', 'vision', 'reasoning', 'validation', 'complete', 'error'].indexOf(pipelineStatus.stage);
 
   return (
-    <div>
+    <div className="space-y-8">
       {/* Phase 2: Evidence Upload */}
-      <div style={{ marginBottom: '32px' }}>
-        <h3 style={{ fontFamily: 'Space Grotesk, sans-serif', color: 'var(--text-primary)', marginBottom: '8px' }}>
-          Phase 2 — Evidence Upload
-        </h3>
-        <p style={{ color: 'var(--text-secondary)', marginBottom: '16px', fontSize: '14px' }}>
-          Upload an agricultural receipt, weighbridge ticket, or crop document
-        </p>
+      <div className="space-y-4">
+        <div>
+          <h3 className="font-display text-base font-semibold text-foreground flex items-center gap-2">
+            <Upload className="w-4 h-4 text-primary" />
+            Phase 2 — Evidence Upload
+          </h3>
+          <p className="text-muted-foreground text-sm mt-1">
+            Upload an agricultural receipt, weighbridge ticket, or crop document
+          </p>
+        </div>
 
         <div
           onDragEnter={handleDrag}
           onDragLeave={handleDrag}
           onDragOver={handleDrag}
           onDrop={handleDrop}
-          style={{
-            border: `1px dashed ${dragActive ? 'var(--ai-green-glow)' : 'rgba(0,255,136,0.3)'}`,
-            borderRadius: '16px',
-            padding: '40px',
-            textAlign: 'center',
-            background: dragActive ? 'rgba(0,255,136,0.05)' : 'rgba(15,23,42,0.4)',
-            transition: 'all 0.3s cubic-bezier(0.4,0,0.2,1)',
-            boxShadow: dragActive ? '0 0 30px rgba(0,255,136,0.2)' : 'none',
-          }}
+          className={cn(
+            "border-2 border-dashed rounded-2xl p-10 text-center transition-all duration-300 cursor-pointer",
+            dragActive
+              ? "border-agri-green bg-agri-green/5 shadow-[0_0_30px_rgba(0,255,136,0.2)]"
+              : "border-border hover:border-agri-green/30 bg-muted/30"
+          )}
         >
           {imagePreview ? (
-            <div>
-              <img src={imagePreview} alt="Preview" style={{ maxWidth: '300px', maxHeight: '200px', borderRadius: '12px', border: '1px solid var(--border-glow)' }} />
-              <p style={{ marginTop: '12px', color: 'var(--ai-green-glow)', fontWeight: 600, fontSize: '14px', fontFamily: 'JetBrains Mono, monospace' }}>
+            <div className="space-y-3">
+              <img src={imagePreview} alt="Preview" className="max-w-[300px] max-h-[200px] mx-auto rounded-xl border border-border" />
+              <Badge variant="outline" className="border-agri-green/50 text-agri-green gap-1.5">
+                <CheckCircle className="w-3 h-3" />
                 Document loaded
-              </p>
+              </Badge>
             </div>
           ) : (
-            <div>
-              <div style={{
-                width: '64px', height: '64px', margin: '0 auto 16px',
-                border: '2px solid var(--border-glow)',
-                borderRadius: '16px',
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                background: 'rgba(0,255,136,0.05)',
-              }}>
-                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="var(--ai-green-glow)" strokeWidth="1.5">
-                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
-                  <polyline points="17 8 12 3 7 8"/>
-                  <line x1="12" y1="3" x2="12" y2="15"/>
-                </svg>
+            <div className="space-y-4">
+              <div className="mx-auto w-16 h-16 rounded-2xl border border-border bg-muted/50 flex items-center justify-center">
+                <Upload className="w-7 h-7 text-muted-foreground" />
               </div>
-              <p style={{ fontSize: '15px', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '6px' }}>
-                Drag and drop your document here
-              </p>
-              <p style={{ color: 'var(--text-secondary)', fontSize: '13px', marginBottom: '16px' }}>or</p>
-              <label
+              <div>
+                <p className="font-medium text-foreground">Drag and drop your document here</p>
+                <p className="text-muted-foreground text-sm mt-1">or</p>
+              </div>
+              <Label
                 htmlFor="file-upload"
-                onClick={(e) => e.stopPropagation()}
-                style={{
-                  display: 'inline-block',
-                  padding: '10px 24px',
-                  background: 'linear-gradient(135deg, var(--ai-green-glow) 0%, var(--agri-green) 100%)',
-                  color: 'var(--space-black)',
-                  borderRadius: '10px',
-                  cursor: 'pointer',
-                  fontWeight: 600,
-                  fontSize: '14px',
-                  boxShadow: '0 0 20px rgba(0,255,136,0.3)',
-                  position: 'relative',
-                  zIndex: 2,
-                }}
+                className="inline-flex items-center gap-2 btn-agri rounded-xl px-6 py-2.5 cursor-pointer text-sm font-semibold"
               >
+                <FileText className="w-4 h-4" />
                 Browse Files
-              </label>
+              </Label>
             </div>
           )}
         </div>
@@ -240,43 +212,42 @@ export function TransactionFormEnhanced() {
           type="file"
           accept="image/*"
           onChange={(e) => e.target.files?.[0] && handleFile(e.target.files[0])}
-          style={{ display: 'none' }}
+          className="hidden"
         />
 
         {selectedImage && !extractedData && pipelineStatus.stage === 'idle' && (
-          <button onClick={handleAnalyzeImage} style={{ width: '100%', marginTop: '16px', padding: '16px', fontSize: '15px' }}>
-            Initiate AI Oracle Analysis
-          </button>
+          <Button onClick={handleAnalyzeImage} className="w-full btn-agri">
+            <Zap className="w-4 h-4" />
+            Initiate AI Analysis
+          </Button>
         )}
       </div>
 
-      {/* Phase 3: AI Oracle Pipeline */}
+      {/* Phase 3: AI Pipeline */}
       {(pipelineStatus.stage !== 'idle' || extractedData) && (
-        <div style={{ marginBottom: '32px' }}>
-          <h3 style={{ fontFamily: 'Space Grotesk, sans-serif', color: 'var(--text-primary)', marginBottom: '16px' }}>
-            Phase 3 — Chained AI Oracle Processing
+        <div className="space-y-4">
+          <h3 className="font-display text-base font-semibold text-foreground flex items-center gap-2">
+            <Shield className="w-4 h-4 text-primary" />
+            Phase 3 — Chained AI Processing
           </h3>
 
           {/* Pipeline stages */}
-          <div style={{ display: 'flex', gap: '8px', marginBottom: '16px' }}>
-            {(['vision', 'reasoning', 'validation', 'complete'] as const).map((stage) => {
-              const stageIndex = ['vision', 'reasoning', 'validation', 'complete'].indexOf(stage);
-              const currentIndex = ['idle', 'vision', 'reasoning', 'validation', 'complete', 'error'].indexOf(pipelineStatus.stage);
-              const isActive = currentIndex === stageIndex + 1;
-              const isDone = currentIndex > stageIndex + 1;
+          <div className="grid grid-cols-4 gap-2">
+            {stages.map((stage, idx) => {
+              const isDone = stageIndex > idx + 1;
+              const isActive = stageIndex === idx + 1;
               return (
-                <div key={stage} style={{
-                  flex: 1,
-                  padding: '10px',
-                  borderRadius: '10px',
-                  border: `1px solid ${isDone ? 'var(--ai-green-glow)' : isActive ? 'var(--blockchain-blue)' : 'rgba(255,255,255,0.1)'}`,
-                  background: isDone ? 'rgba(0,255,136,0.08)' : isActive ? 'rgba(74,144,226,0.08)' : 'transparent',
-                  textAlign: 'center',
-                  fontSize: '12px',
-                  fontFamily: 'JetBrains Mono, monospace',
-                  color: isDone ? 'var(--ai-green-glow)' : isActive ? 'var(--blockchain-blue)' : 'var(--text-secondary)',
-                  transition: 'all 0.3s',
-                }}>
+                <div
+                  key={stage}
+                  className={cn(
+                    "p-2.5 rounded-xl border text-center text-xs font-mono transition-all",
+                    isDone
+                      ? "border-agri-green/50 bg-agri-green/5 text-agri-green"
+                      : isActive
+                      ? "border-primary/50 bg-primary/5 text-primary"
+                      : "border-border text-muted-foreground"
+                  )}
+                >
                   {stage.toUpperCase()}
                 </div>
               );
@@ -284,165 +255,214 @@ export function TransactionFormEnhanced() {
           </div>
 
           {/* Progress bar */}
-          <div style={{ width: '100%', height: '4px', background: 'rgba(255,255,255,0.1)', borderRadius: '4px', overflow: 'hidden', marginBottom: '12px' }}>
-            <div style={{
-              width: `${pipelineStatus.progress}%`,
-              height: '100%',
-              background: pipelineStatus.stage === 'error'
-                ? 'var(--error-red)'
-                : 'linear-gradient(90deg, var(--ai-green-glow), var(--blockchain-blue))',
-              transition: 'width 0.5s cubic-bezier(0.4,0,0.2,1)',
-              boxShadow: '0 0 10px var(--ai-green-glow)',
-            }} />
-          </div>
+          <Progress
+            value={pipelineStatus.progress}
+            className={cn(
+              "h-1.5",
+              pipelineStatus.stage === 'error' && "[&>div]:bg-destructive"
+            )}
+          />
 
           {pipelineStatus.message && (
-            <div style={{
-              padding: '12px 16px',
-              background: pipelineStatus.stage === 'error' ? 'rgba(239,68,68,0.08)' : pipelineStatus.stage === 'complete' ? 'rgba(0,255,136,0.08)' : 'rgba(74,144,226,0.08)',
-              border: `1px solid ${pipelineStatus.stage === 'error' ? 'var(--error-red)' : pipelineStatus.stage === 'complete' ? 'var(--ai-green-glow)' : 'var(--blockchain-blue)'}`,
-              borderRadius: '10px',
-              marginBottom: '16px',
-              fontFamily: 'JetBrains Mono, monospace',
-              fontSize: '13px',
-              color: 'var(--text-primary)',
-            }}>
+            <div
+              className={cn(
+                "p-3 rounded-xl border font-mono text-xs",
+                pipelineStatus.stage === 'error'
+                  ? "border-destructive/30 bg-destructive/5 text-destructive"
+                  : pipelineStatus.stage === 'complete'
+                  ? "border-agri-green/30 bg-agri-green/5 text-agri-green"
+                  : "border-primary/30 bg-primary/5 text-foreground"
+              )}
+            >
               {pipelineStatus.message}
             </div>
           )}
 
-          {/* Oracle Output */}
+          {/* Analysis Output */}
           {extractedData?.security_audit && verdictStyle && (
-            <div style={{ border: `1px solid ${verdictStyle.border}`, borderRadius: '16px', padding: '20px', background: verdictStyle.bg }}>
-              <p style={{ fontFamily: 'Space Grotesk, sans-serif', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '16px', fontSize: '15px' }}>
-                Oracle Output
-              </p>
-
-              {/* Security Audit */}
-              <div style={{ marginBottom: '16px' }}>
-                <p style={{ fontSize: '12px', fontFamily: 'JetBrains Mono, monospace', color: 'var(--text-secondary)', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                  Security Audit
+            <Card className={cn("border", verdictStyle.bg, verdictStyle.border)}>
+              <CardContent className="pt-6 space-y-5">
+                <p className="font-display font-semibold text-foreground flex items-center gap-2">
+                  <Shield className="w-4 h-4" />
+                  Analysis Output
                 </p>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
-                  {[
-                    { label: 'Verdict', value: verdict },
-                    { label: 'Confidence', value: `${extractedData.security_audit.confidence_score}/100` },
-                    { label: 'Tamper Probability', value: `${(extractedData.security_audit.tamper_probability * 100).toFixed(1)}%` },
-                    { label: 'Validity Score', value: `${extractedData.validityScore}/100` },
-                  ].map(({ label, value }) => (
-                    <div key={label} style={{ padding: '10px 14px', background: 'rgba(15,23,42,0.5)', borderRadius: '10px', border: '1px solid rgba(255,255,255,0.05)' }}>
-                      <p style={{ fontSize: '11px', color: 'var(--text-secondary)', fontFamily: 'JetBrains Mono, monospace', marginBottom: '4px' }}>{label}</p>
-                      <p style={{ fontSize: '14px', fontWeight: 600, color: verdictStyle.color, fontFamily: 'JetBrains Mono, monospace' }}>{value}</p>
-                    </div>
-                  ))}
-                </div>
-                {extractedData.security_audit.visual_anomalies?.length > 0 && (
-                  <div style={{ marginTop: '10px', padding: '10px 14px', background: 'rgba(239,68,68,0.05)', borderRadius: '10px', border: '1px solid rgba(239,68,68,0.2)' }}>
-                    <p style={{ fontSize: '11px', color: 'var(--text-secondary)', fontFamily: 'JetBrains Mono, monospace', marginBottom: '6px' }}>VISUAL ANOMALIES</p>
-                    {extractedData.security_audit.visual_anomalies.map((a, i) => (
-                      <p key={i} style={{ fontSize: '13px', color: 'var(--error-red)', margin: '2px 0' }}>{a}</p>
+
+                {/* Security Audit */}
+                <div className="space-y-3">
+                  <p className="text-xs font-mono text-muted-foreground uppercase tracking-wider">Security Audit</p>
+                  <div className="grid grid-cols-2 gap-2">
+                    {[
+                      { label: 'Verdict', value: verdict },
+                      { label: 'Confidence', value: `${extractedData.security_audit.confidence_score}/100` },
+                      { label: 'Tamper Probability', value: `${(extractedData.security_audit.tamper_probability * 100).toFixed(1)}%` },
+                      { label: 'Validity Score', value: `${extractedData.validityScore}/100` },
+                    ].map(({ label, value }) => (
+                      <div key={label} className="p-3 rounded-xl bg-muted/50 border border-border/50">
+                        <p className="text-[11px] text-muted-foreground font-mono mb-1">{label}</p>
+                        <p className={cn("text-sm font-semibold font-mono", verdictStyle.text)}>{value}</p>
+                      </div>
                     ))}
                   </div>
-                )}
-              </div>
-
-              {/* Extracted Data */}
-              <div>
-                <p style={{ fontSize: '12px', fontFamily: 'JetBrains Mono, monospace', color: 'var(--text-secondary)', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                  Extracted Data
-                </p>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
-                  {[
-                    { label: 'Farmer ID', value: extractedData.farmer_id },
-                    { label: 'Crop Type', value: extractedData.produce_type },
-                    { label: 'Weight', value: `${extractedData.weight_kg} kg` },
-                    { label: 'Buyer', value: extractedData.buyer_name },
-                    { label: 'Date', value: extractedData.transaction_date },
-                  ].map(({ label, value }) => (
-                    <div key={label} style={{ padding: '10px 14px', background: 'rgba(15,23,42,0.5)', borderRadius: '10px', border: '1px solid rgba(255,255,255,0.05)' }}>
-                      <p style={{ fontSize: '11px', color: 'var(--text-secondary)', fontFamily: 'JetBrains Mono, monospace', marginBottom: '4px' }}>{label}</p>
-                      <p style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text-primary)' }}>{value}</p>
+                  {extractedData.security_audit.visual_anomalies?.length > 0 && (
+                    <div className="p-3 rounded-xl bg-destructive/5 border border-destructive/20">
+                      <p className="text-[11px] text-muted-foreground font-mono mb-2">VISUAL ANOMALIES</p>
+                      {extractedData.security_audit.visual_anomalies.map((a, i) => (
+                        <p key={i} className="text-xs text-destructive">{a}</p>
+                      ))}
                     </div>
-                  ))}
+                  )}
                 </div>
-              </div>
-            </div>
+
+                {/* Extracted Data */}
+                <div className="space-y-3">
+                  <p className="text-xs font-mono text-muted-foreground uppercase tracking-wider">Extracted Data</p>
+                  <div className="grid grid-cols-2 gap-2">
+                    {[
+                      { label: 'Farmer ID', value: extractedData.farmer_id },
+                      { label: 'Crop Type', value: extractedData.produce_type },
+                      { label: 'Weight', value: `${extractedData.weight_kg} kg` },
+                      { label: 'Buyer', value: extractedData.buyer_name },
+                      { label: 'Date', value: extractedData.transaction_date },
+                    ].map(({ label, value }) => (
+                      <div key={label} className="p-3 rounded-xl bg-muted/50 border border-border/50">
+                        <p className="text-[11px] text-muted-foreground font-mono mb-1">{label}</p>
+                        <p className="text-sm font-semibold text-foreground">{value}</p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
           )}
         </div>
       )}
 
       {/* Phase 4: Review & Confirm */}
       {extractedData && (
-        <form onSubmit={handleSubmit}>
-          <h3 style={{ fontFamily: 'Space Grotesk, sans-serif', color: 'var(--text-primary)', marginBottom: '8px' }}>
-            Phase 4 — Review and Confirm
-          </h3>
-          <p style={{ color: 'var(--text-secondary)', marginBottom: '20px', fontSize: '14px' }}>
-            AI-extracted data is locked. Only manually fill empty fields.
-          </p>
+        <form onSubmit={handleSubmit} className="space-y-5">
+          <div>
+            <h3 className="font-display text-base font-semibold text-foreground flex items-center gap-2">
+              <FileText className="w-4 h-4 text-primary" />
+              Phase 4 — Review and Confirm
+            </h3>
+            <p className="text-muted-foreground text-sm mt-1">
+              AI-extracted data is locked. Only manually fill empty fields.
+            </p>
+          </div>
 
-          <input
-            placeholder="Farmer ID"
-            value={formData.farmer_id}
-            onChange={(e) => setFormData({ ...formData, farmer_id: e.target.value })}
-            required
-            disabled={isValidFarmerId(extractedData.farmer_id)}
-          />
-          <input
-            placeholder="Produce Type (e.g. Maize, Wheat)"
-            value={formData.produce_type}
-            onChange={(e) => setFormData({ ...formData, produce_type: e.target.value })}
-            required
-            disabled={isValidString(extractedData.produce_type)}
-          />
-          <input
-            type="number"
-            placeholder="Weight (kg)"
-            value={formData.weight_kg || ''}
-            onChange={(e) => setFormData({ ...formData, weight_kg: parseFloat(e.target.value) })}
-            required
-            min="0.1"
-            step="0.1"
-            disabled={isValidWeight(extractedData.weight_kg)}
-          />
-          <input
-            placeholder="Buyer Name"
-            value={formData.buyer_name}
-            onChange={(e) => setFormData({ ...formData, buyer_name: e.target.value })}
-            required
-            disabled={isValidString(extractedData.buyer_name)}
-          />
-          <input
-            type="date"
-            value={formData.transaction_date}
-            onChange={(e) => setFormData({ ...formData, transaction_date: e.target.value })}
-            required
-            disabled={isValidDate(extractedData.transaction_date)}
-          />
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="farmer_id">Farmer ID</Label>
+              <Input
+                id="farmer_id"
+                placeholder="Farmer ID"
+                value={formData.farmer_id}
+                onChange={(e) => setFormData({ ...formData, farmer_id: e.target.value })}
+                required
+                disabled={isValidFarmerId(extractedData.farmer_id)}
+                className="input-agri"
+              />
+            </div>
 
-          <div className="gas-info">
+            <div className="space-y-2">
+              <Label htmlFor="produce_type">Produce Type</Label>
+              <Input
+                id="produce_type"
+                placeholder="e.g. Maize, Wheat"
+                value={formData.produce_type}
+                onChange={(e) => setFormData({ ...formData, produce_type: e.target.value })}
+                required
+                disabled={isValidString(extractedData.produce_type)}
+                className="input-agri"
+              />
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="weight_kg">Weight (kg)</Label>
+                <Input
+                  id="weight_kg"
+                  type="number"
+                  placeholder="Weight"
+                  value={formData.weight_kg || ''}
+                  onChange={(e) => setFormData({ ...formData, weight_kg: parseFloat(e.target.value) })}
+                  required
+                  min="0.1"
+                  step="0.1"
+                  disabled={isValidWeight(extractedData.weight_kg)}
+                  className="input-agri"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="transaction_date">Date</Label>
+                <Input
+                  id="transaction_date"
+                  type="date"
+                  value={formData.transaction_date}
+                  onChange={(e) => setFormData({ ...formData, transaction_date: e.target.value })}
+                  required
+                  disabled={isValidDate(extractedData.transaction_date)}
+                  className="input-agri"
+                />
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="buyer_name">Buyer Name</Label>
+              <Input
+                id="buyer_name"
+                placeholder="Buyer Name"
+                value={formData.buyer_name}
+                onChange={(e) => setFormData({ ...formData, buyer_name: e.target.value })}
+                required
+                disabled={isValidString(extractedData.buyer_name)}
+                className="input-agri"
+              />
+            </div>
+          </div>
+
+          <div className="p-3 rounded-xl bg-muted/50 border border-border font-mono text-sm text-muted-foreground flex items-center gap-2">
+            <Zap className="w-4 h-4 text-primary" />
             Estimated gas: {estimatedCost} ETH
           </div>
 
-          <button
+          <Button
             type="submit"
             disabled={isSubmitting || !hasSufficientBalance || extractedData.security_audit.verdict === 'FRAUD_DETECTED'}
-            style={{ opacity: extractedData.security_audit.verdict === 'FRAUD_DETECTED' ? 0.4 : 1 }}
+            className={cn(
+              "w-full btn-agri",
+              extractedData.security_audit.verdict === 'FRAUD_DETECTED' && "opacity-40 cursor-not-allowed"
+            )}
           >
-            {isSubmitting ? 'Submitting to Blockchain...' : 'Verify and Hash to Ledger'}
-          </button>
+            {isSubmitting ? (
+              <>
+                <Loader2 className="w-4 h-4 animate-spin" />
+                Submitting to Blockchain...
+              </>
+            ) : (
+              <>
+                <CheckCircle className="w-4 h-4" />
+                Verify and Hash to Ledger
+              </>
+            )}
+          </Button>
 
           {extractedData.security_audit.verdict === 'FRAUD_DETECTED' && (
-            <p style={{ color: 'var(--error-red)', fontWeight: 600, marginTop: '10px', fontFamily: 'JetBrains Mono, monospace', fontSize: '13px' }}>
+            <p className="text-destructive font-semibold font-mono text-xs text-center">
               Transaction blocked — fraud detected
             </p>
           )}
 
-          {error && <p className="error">{error.message}</p>}
+          {error && (
+            <div className="p-3 rounded-xl bg-destructive/5 border border-destructive/30 text-destructive text-sm">
+              {error.message}
+            </div>
+          )}
 
           {success && (
-            <div style={{ padding: '16px', background: 'rgba(0,255,136,0.08)', border: '1px solid var(--ai-green-glow)', borderRadius: '12px', marginTop: '16px' }}>
-              <p style={{ color: 'var(--ai-green-glow)', fontWeight: 600, margin: 0, fontFamily: 'Space Grotesk, sans-serif' }}>
+            <div className="p-4 rounded-xl bg-agri-green/5 border border-agri-green/30">
+              <p className="text-agri-green font-semibold font-display flex items-center gap-2">
+                <CheckCircle className="w-4 h-4" />
                 Phase 5 — Transaction verified and stored on blockchain
               </p>
             </div>
